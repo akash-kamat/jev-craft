@@ -1,0 +1,17 @@
+{
+  "name": "jev-minecraft",
+  "version": "0.1.0",
+  "description": "Minecraft survival bot powered by Jev (TypeSafe System One)",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0",
+    "dotenv": "^18.0.1",
+    "mineflayer": "^4.23.0",
+    "mineflayer-pathfinder": "^2.4.0"
+  }
+}
