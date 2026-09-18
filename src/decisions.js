@@ -1,6 +1,6 @@
 import { TypeSafeClient, choice, score, noul } from "@typesafe-ai/sdk";
 import { config } from "./config.js";
-import { getCurrentGoal } from "./tactics.js";
+import { getCurrentGoal, getGoalProgress } from "./tactics.js";
 import { getMindState, searchMemory } from "./mind.js";
 
 const client = new TypeSafeClient();
@@ -9,6 +9,7 @@ export async function decide(state) {
   const hasHostiles = state.nearby_hostiles.length > 0;
   const currentGoal = getCurrentGoal();
   const mind = getMindState();
+  const progress = getGoalProgress();
 
   searchMemory(state);
 
@@ -29,6 +30,23 @@ export async function decide(state) {
     mind.recent_events.length > 0
       ? `Recent: ${mind.recent_events.map((e) => `${e.event} (${e.ago})`).join(", ")}.`
       : "";
+
+  const progressContext = progress
+    ? [
+        `Working on "${progress.goal}" for ${progress.time_on_goal}s.`,
+        progress.total_failures > 0
+          ? `${progress.total_failures} failures so far.`
+          : "",
+        progress.stuck_on.length > 0
+          ? `STUCK: ${progress.stuck_on.join("; ")}.`
+          : "",
+        progress.recent_results.length > 0
+          ? `Last steps: ${progress.recent_results.slice(-3).join(", ")}.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
 
   const cleanState = {
     player: state.player,
@@ -70,6 +88,7 @@ export async function decide(state) {
           currentGoal ? `Working on: ${currentGoal}.` : "No active goal.",
           emotionContext,
           recentContext,
+          progressContext,
           recallContext,
         ].join(" "),
         {
@@ -80,7 +99,7 @@ export async function decide(state) {
           continue_goal:
             "Keep working on current goal — when safe and there's something to do",
           look_around:
-            "Survey surroundings — when uncertain or curious about the area",
+            "Survey surroundings — when uncertain, curious, or stuck and need to reorient",
         }
       ),
 

@@ -1,4 +1,5 @@
 import { getEmotions, getEmotionLabel, getRecentEvents } from "./mind.js";
+import { getGoalProgress } from "./tactics.js";
 
 const COLORS = {
   reset: "\x1b[0m",
@@ -58,6 +59,22 @@ export function logMind() {
     console.log(
       `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
         `${COLORS.dim}Latest: ${latest.event} (${latest.ago})${COLORS.reset}`
+    );
+  }
+
+  const progress = getGoalProgress();
+  if (progress && progress.total_failures > 0) {
+    const stuckStr =
+      progress.stuck_on.length > 0
+        ? ` ${COLORS.red}STUCK:${progress.stuck_on.join("; ")}${COLORS.reset}`
+        : "";
+    console.log(
+      `${COLORS.dim}[${timestamp()}]${COLORS.reset} ` +
+        `${COLORS.yellow}Progress:${COLORS.reset} ` +
+        `${progress.goal} ${progress.time_on_goal}s ` +
+        `fails:${progress.total_failures}` +
+        `${progress.plan ? ` plan:${progress.plan}` : ""}` +
+        stuckStr
     );
   }
 }
