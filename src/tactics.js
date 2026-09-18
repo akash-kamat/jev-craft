@@ -15,13 +15,14 @@ let playerCommand = null;
 let playerCommandAt = 0;
 
 const COMMAND_EXPIRY = 30000;
-const STEP_FAIL_SKIP = 3;
-const GOAL_ABANDON_THRESHOLD = 8;
+const STEP_FAIL_SKIP = 5;
+const GOAL_ABANDON_THRESHOLD = 10;
 
 let stepFailures = {};
 let recentResults = [];
 let totalGoalFailures = 0;
 let goalPlan = null;
+let recentlyAbandoned = [];
 
 function resetProgress() {
   stepFailures = {};
@@ -228,6 +229,9 @@ export async function pickGoal(state) {
           progress && progress.total_failures >= 5
             ? `The bot is struggling with "${progress.goal}". Consider switching to a prerequisite goal or a completely different approach.`
             : "",
+          recentlyAbandoned.length > 0
+            ? `Recently abandoned goals (avoid re-picking): ${recentlyAbandoned.join(", ")}. Try "explore" or a different goal instead.`
+            : "",
         ].join(" "),
         goalDescriptions
       ),
@@ -297,10 +301,18 @@ export async function pickGoal(state) {
     goalPlan = approach;
 
     const prefix = isPlayerCommand ? `player said "${command}" → ` : "";
-    const abandonNote =
-      oldGoal && progress && progress.total_failures >= GOAL_ABANDON_THRESHOLD
-        ? `(abandoned ${oldGoal} after ${progress.total_failures} failures) `
-        : "";
+    const wasAbandoned =
+      oldGoal && progress && progress.total_failures >= GOAL_ABANDON_THRESHOLD;
+    if (wasAbandoned) {
+      recentlyAbandoned.push(oldGoal);
+      if (recentlyAbandoned.length > 3) recentlyAbandoned.shift();
+      setTimeout(() => {
+        recentlyAbandoned = recentlyAbandoned.filter((g) => g !== oldGoal);
+      }, 60000);
+    }
+    const abandonNote = wasAbandoned
+      ? `(abandoned ${oldGoal} after ${progress.total_failures} failures) `
+      : "";
     return {
       switched: true,
       message: `${prefix}${abandonNote}new goal: ${newGoal} (urgency: ${urgency.toFixed(1)}, approach: ${approach})`,
@@ -416,6 +428,11 @@ export async function runGoalStep(bot) {
 
       if (response.answers.abandon.noul > 0.5) {
         const msg = `abandoned ${goalName} — all steps failing (${totalGoalFailures} failures)`;
+        recentlyAbandoned.push(goalName);
+        if (recentlyAbandoned.length > 3) recentlyAbandoned.shift();
+        setTimeout(() => {
+          recentlyAbandoned = recentlyAbandoned.filter((g) => g !== goalName);
+        }, 60000);
         manualGoal = null;
         currentGoalName = null;
         goalState = {};

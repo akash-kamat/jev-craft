@@ -235,7 +235,7 @@ export const GOALS = {
           );
           await navigateTo(bot, target);
           rememberExploredArea(bot.entity.position);
-          return "no logs nearby — walking to search";
+          return "searching for logs — moved to new area";
         },
       },
     ],
@@ -329,8 +329,19 @@ export const GOALS = {
           const pickaxe = bot.inventory.items().find((i) => i.name.includes("pickaxe"));
           if (pickaxe) await bot.equip(pickaxe, "hand");
           const mined = await mineBlock(bot, [...STONE_BLOCKS]);
-          if (mined) rememberResource("stone", bot.entity.position);
-          return mined ? "mined stone" : "no stone found nearby";
+          if (mined) {
+            rememberResource("stone", bot.entity.position);
+            return "mined stone";
+          }
+          const pos = bot.entity.position;
+          const below = bot.blockAt(pos.offset(0, -1, 0));
+          if (below && below.name !== "air" && below.name !== "bedrock") {
+            try {
+              await bot.dig(below);
+              return "digging down to find stone";
+            } catch {}
+          }
+          return "searching for stone — digging around";
         },
       },
     ],
@@ -606,7 +617,14 @@ export const GOALS = {
         name: "hunt animal",
         async run(bot) {
           const animal = findNearestAnimal(bot);
-          if (!animal) return "no animals nearby";
+          if (!animal) {
+            const angle = Math.random() * Math.PI * 2;
+            const target = bot.entity.position.offset(
+              Math.cos(angle) * 25, 0, Math.sin(angle) * 25
+            );
+            await navigateTo(bot, target);
+            return "searching for animals — moved to new area";
+          }
 
           await navigateTo(bot, animal.position);
           const sword = bot.inventory.items().find((i) => i.name.includes("sword"));
