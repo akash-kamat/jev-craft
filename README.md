@@ -20,7 +20,7 @@ jev-craft is a Minecraft survival bot powered by **[Jev](https://typesafe.ai)** 
 
 ## Demo
 
-![Demo](screenrec.mp4)
+https://github.com/user-attachments/assets/7a86b9c8-6488-4f2a-aaa8-dccf256d0a4e
 
 </div>
 
